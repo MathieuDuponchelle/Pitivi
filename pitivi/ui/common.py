@@ -131,7 +131,7 @@ def beautify_stream(stream):
             templ = templ % (par * stream.get_height(), stream.get_height())
         return templ
     elif type(stream) == gst.pbutils.DiscovererStreamInfo and\
-             "text" in  stream.get_caps():
+             "text" in  stream.get_caps().to_string():
         return _("Subtitles")
     raise NotImplementedError
 
