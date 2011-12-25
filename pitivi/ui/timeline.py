@@ -430,15 +430,19 @@ class Timeline(gtk.Table, Loggable, Zoomable):
             layer.remove_object(tlobj)
         self._temp_objects = []
         self.drag_unhighlight()
-        self.timeline.enable_update(True)
+        self._move_context.finish()
+
+    def _recreate_source(self, x, y):
+        self.app.action_log.begin("add clip")
+        self.added = 0
+        self._create_temp_source(x, y)
+        self.app.action_log.commit()
+        self._factories = []
 
     def _dragDropCb(self, widget, context, x, y, timestamp):
         if  context.targets not in DND_EFFECT_LIST:
-            self.app.action_log.begin("add clip")
-            self._create_temp_source(x, y)
-            self.app.action_log.commit()
+            gobject.timeout_add(300, self._recreate_source, x, y)
             context.drop_finish(True, timestamp)
-            self._factories = []
 
             return True
 
@@ -569,7 +573,7 @@ class Timeline(gtk.Table, Loggable, Zoomable):
         self._temp_objects.insert(0, tlobj)
         tlobj.disconnect(self._creating_tckobjs_sigid[tlobj])
         del self._creating_tckobjs_sigid[tlobj]
-        if (x != -1):
+        if (x != -1 and not self.added):
             focus = self._temp_objects[0]
             self._move_context = MoveContext(self.timeline,
                                              focus, set(self._temp_objects[1:]))
@@ -577,6 +581,8 @@ class Timeline(gtk.Table, Loggable, Zoomable):
             self.selected = self._temp_objects
             self._project.emit("selected-changed", set(self.selected))
             self._move_context.finish()
+            self._temp_objects = []
+            self.added = 1
 
     def _move_temp_source(self, x, y):
         x1, y1, x2, y2 = self._controls.get_allocation()
