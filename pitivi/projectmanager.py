@@ -143,7 +143,9 @@ class ProjectManager(Signallable, Loggable):
 
         #FIXME Implement when avalaible in GES
         #self._connectToFormatter(formatter)
-        return formatter.save_to_uri(project.timeline, uri)
+        res = formatter.save_to_uri(project.timeline, uri)
+        formatter.add_source("example", uri)
+        return res
 
     def closeRunningProject(self):
         """ close the current project """
