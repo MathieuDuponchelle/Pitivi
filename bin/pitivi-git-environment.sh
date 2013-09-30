@@ -24,8 +24,8 @@ BUILD_DOCS=false
 # we'll fetch the git repositories at the given version tag and compile.
 # If you set those variables to "master", it will grab the latest dev version
 GLIB_RELEASE_TAG="2.34.2" # "gobject-introspection" needs glib > 2.32
-PYGOBJECT_RELEASE_TAG="3.8.0"
-GOBJECT_INTROSPECTION_MINIMUM_VERSION="1.34.2"
+PYGOBJECT_RELEASE_TAG="3.10.0"
+GOBJECT_INTROSPECTION_MINIMUM_VERSION="1.38.0"
 GOBJECT_INTROSPECTION_RELEASE_TAG="GOBJECT_INTROSPECTION_$(echo $GOBJECT_INTROSPECTION_MINIMUM_VERSION | tr '.' '_')"
 
 
