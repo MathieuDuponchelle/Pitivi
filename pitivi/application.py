@@ -26,6 +26,7 @@ Main application
 """
 import os
 import sys
+
 from gi.repository import GES
 from gi.repository import Gio
 from gi.repository import GLib

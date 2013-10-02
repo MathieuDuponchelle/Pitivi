@@ -21,6 +21,8 @@
 
 import platform
 from gi.repository import Gtk
+from gi.repository import Clutter
+from gi.repository import GtkClutter
 from gi.repository import Gdk
 from gi.repository import Gst
 from gi.repository import GdkX11
@@ -142,7 +144,7 @@ class PitiviViewer(Gtk.VBox, Loggable):
             self.pipeline.connect("position", self._positionCb)
             self.pipeline.connect("duration-changed", self._durationChangedCb)
 
-        self.sink = pipeline.video_overlay
+        self.sink = pipeline.video_overlay._clutter_sink
         self.target.sink = self.sink
         self._switch_output_window()
         self._setUiActive()
@@ -271,6 +273,7 @@ class PitiviViewer(Gtk.VBox, Loggable):
             width += 110
             height = int(width / self.aframe.props.ratio)
             self.aframe.set_size_request(width, height)
+            self.internal.texture.set_size(width, height)
 
         self.buttons = bbox
         self.buttons_container = boxalign
@@ -498,13 +501,7 @@ class PitiviViewer(Gtk.VBox, Loggable):
             return
 
         if self.target.get_realized():
-            if platform.system() == 'Windows':
-                xid = self.target.get_window().get_handle()
-            else:
-                xid = self.target.get_window().get_xid()
-
-            self.sink.set_window_handle(xid)
-            self.sink.expose()
+            self.sink.props.texture = self.target.texture
         else:
             # Show the widget and wait for the realized callback
             self.target.show()
@@ -823,7 +820,7 @@ class TransformationBox():
             self.transformation_properties.connectSpinButtonsToFlush()
 
 
-class ViewerWidget(Gtk.DrawingArea, Loggable):
+class ViewerWidget(GtkClutter.Embed, Loggable):
     """
     Widget for displaying properly GStreamer video sink
 
@@ -834,7 +831,11 @@ class ViewerWidget(Gtk.DrawingArea, Loggable):
     __gsignals__ = {}
 
     def __init__(self, settings=None):
-        Gtk.DrawingArea.__init__(self)
+        GtkClutter.Embed.__init__(self)
+        self._stage = self.get_stage()
+        self.texture = Clutter.Texture()
+        self.texture.set_sync_size(False)
+        self._stage.add_child(self.texture)
         Loggable.__init__(self)
         self.seeker = Seeker()
         self.settings = settings
