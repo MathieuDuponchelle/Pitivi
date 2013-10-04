@@ -824,6 +824,11 @@ class Line(Clutter.Actor):
             self._ungrab()
 
 
+class KeyframeLine(Line):
+    def __init__(self):
+        Line.__init__(self)
+
+
 class KeyframeMenu(GtkClutter.Actor):
     def __init__(self, keyframe):
         GtkClutter.Actor.__init__(self)
