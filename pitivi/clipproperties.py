@@ -83,15 +83,13 @@ class ClipProperties(Gtk.ScrolledWindow, Loggable):
         effect_properties_handling = EffectsPropertiesManager(instance)
         self.effect_expander = EffectProperties(instance, effect_properties_handling, self)
         self.effect_expander.set_vexpand(False)
-        # Transformation boxed DISABLED
-        #self.transformation_expander = TransformationProperties(instance, instance.action_log)
-        #self.transformation_expander.set_vexpand(False)
+        self.transformation_expander = TransformationProperties(instance, instance.action_log)
+        self.transformation_expander.set_vexpand(False)
 
         vbox = Gtk.VBox()
         vbox.set_spacing(SPACING)
         vbox.pack_start(self.infobar_box, False, True, 0)
-        # Transformation boxed DISABLED
-        #vbox.pack_start(self.transformation_expander, False, True, 0)
+        vbox.pack_start(self.transformation_expander, False, True, 0)
         vbox.pack_start(self.effect_expander, True, True, 0)
 
         viewport = Gtk.Viewport()
@@ -106,9 +104,8 @@ class ClipProperties(Gtk.ScrolledWindow, Loggable):
         self._project = project
         if project:
             self.effect_expander._connectTimelineSelection(self.app.gui.timeline_ui.timeline)
-            # Transformation boxed DISABLED
-            # if self.transformation_expander:
-                # self.transformation_expander.timeline = self.app.gui.timeline_ui.timeline
+            if self.transformation_expander:
+                self.transformation_expander.timeline = self.app.gui.timeline_ui.timeline
 
     def _getProject(self):
         return self._project
@@ -128,8 +125,7 @@ class ClipProperties(Gtk.ScrolledWindow, Loggable):
 
     def _setTimeline(self, timeline):
         self.effect_expander.timeline = timeline
-        # Transformation boxed DISABLED
-        # self.transformation_expander.timeline = timeline
+        self.transformation_expander.timeline = timeline
         self._timeline = timeline
 
     timeline = property(_getTimeline, _setTimeline)
@@ -488,58 +484,48 @@ class TransformationProperties(Gtk.Expander):
         self.default_values = {}
         self.set_label(_("Transformation"))
 
-        if not "Frei0r" in missing_soft_deps:
-            self.builder = Gtk.Builder()
-            self.builder.add_from_file(os.path.join(get_ui_dir(),
-                        "cliptransformation.ui"))
+        self.builder = Gtk.Builder()
+        self.builder.add_from_file(os.path.join(get_ui_dir(),
+                                                "cliptransformation.ui"))
 
-            self.add(self.builder.get_object("transform_box"))
-            self.show_all()
-            self._initButtons()
+        self.add(self.builder.get_object("transform_box"))
+        self.show_all()
+        self._initButtons()
         self.connect('notify::expanded', self._expandedCb)
         self.hide()
 
     def _initButtons(self):
         self.zoom_scale = self.builder.get_object("zoom_scale")
-        self.zoom_scale.connect("value-changed", self._zoomViewerCb)
+#        self.zoom_scale.connect("value-changed", self._zoomViewerCb)
         clear_button = self.builder.get_object("clear_button")
         clear_button.connect("clicked", self._defaultValuesCb)
 
-        self._getAndConnectToEffect("xpos_spinbtn", "tilt_x")
-        self._getAndConnectToEffect("ypos_spinbtn", "tilt_y")
+#        self._getAndConnectToEffect("xpos_spinbtn", "tilt_x")
+#        self._getAndConnectToEffect("ypos_spinbtn", "tilt_y")
 
-        self._getAndConnectToEffect("width_spinbtn", "scale_x")
-        self._getAndConnectToEffect("height_spinbtn", "scale_y")
+#        self._getAndConnectToEffect("width_spinbtn", "scale_x")
+#        self._getAndConnectToEffect("height_spinbtn", "scale_y")
 
-        self._getAndConnectToEffect("crop_left_spinbtn", "clip_left")
-        self._getAndConnectToEffect("crop_right_spinbtn", "clip_right")
-        self._getAndConnectToEffect("crop_top_spinbtn", "clip_top")
-        self._getAndConnectToEffect("crop_bottom_spinbtn", "clip_bottom")
-        self.connectSpinButtonsToFlush()
-
-    def _zoomViewerCb(self, scale):
-        self.app.gui.viewer.setZoom(scale.get_value())
+#        self._getAndConnectToEffect("crop_left_spinbtn", "clip_left")
+#        self._getAndConnectToEffect("crop_right_spinbtn", "clip_right")
+#        self._getAndConnectToEffect("crop_top_spinbtn", "clip_top")
+#        self._getAndConnectToEffect("crop_bottom_spinbtn", "clip_bottom")
+#        self.connectSpinButtonsToFlush()
 
     def _expandedCb(self, expander, params):
-        if not "Frei0r" in missing_soft_deps:
-            if self._selected_clip:
-                self.effect = self._findOrCreateEffect("frei0r-filter-scale0tilt")
-                self._updateSpinButtons()
-                self.set_expanded(self.get_expanded())
-                self._updateBoxVisibility()
-                self.zoom_scale.set_value(1.0)
-        else:
-            if self.get_expanded():
-                DepsManager(self.app)
-            self.set_expanded(False)
+        if self._selected_clip:
+            self._updateSpinButtons()
+            self.set_expanded(self.get_expanded())
+            self._updateBoxVisibility()
+            self.zoom_scale.set_value(1.0)
 
     def _defaultValuesCb(self, widget):
-        self.disconnectSpinButtonsFromFlush()
+#        self.disconnectSpinButtonsFromFlush()
         for name, spinbtn in self.spin_buttons.items():
             spinbtn.set_value(self.default_values[name])
-        self.connectSpinButtonsToFlush()
+#        self.connectSpinButtonsToFlush()
         # FIXME Why are we looking at the gnl object directly?
-        self.effect.gnl_object.props.active = False
+#        self.effect.gnl_object.props.active = False
 
     def disconnectSpinButtonsFromFlush(self):
         for spinbtn in self.spin_buttons.values():
@@ -584,28 +570,6 @@ class TransformationProperties(Gtk.Expander):
     def _flushPipeLineCb(self, widget):
         self.app.current_project.pipeline.flushSeek()
 
-    def _findEffect(self, name):
-        for effect in self._selected_clip.get_children(False):
-            if isinstance(effect, GES.BaseEffect):
-                if name in effect.get_property("bin-description"):
-                    self.effect = effect
-                    return effect.get_element()
-
-    def _findOrCreateEffect(self, name):
-        effect = self._findEffect(name)
-        if not effect:
-            effect = GES.Effect.new(bin_description=name)
-            self._selected_clip.add(effect)
-            tracks = self.app.projectManager.current_project.timeline.get_tracks()
-            effect = self._findEffect(name)
-            # disable the effect on default
-            a = self.effect.get_gnlobject()
-            self.effect = list(list(a.elements())[0].elements())[1]
-            self.effect.get_gnlobject().props.active = False
-        self.app.gui.viewer.internal.set_transformation_properties(self)
-        effect.freeze_notify()
-        return self.effect
-
     def _selectionChangedCb(self, timeline):
         if self.timeline and len(self.timeline.selection.selected) > 0:
             for clip in self.timeline.selection.selected:
@@ -613,24 +577,24 @@ class TransformationProperties(Gtk.Expander):
 
             if clip != self._selected_clip:
                 self._selected_clip = clip
-                self.effect = None
+                self._selected_element = None
+                for element in self._selected_clip.get_children(False):
+                    if isinstance(element, GES.VideoUriSource):
+                        self._selected_element = element
 
             self.show()
             if self.get_expanded():
-                self.effect = self._findOrCreateEffect("frei0r-filter-scale0tilt")
                 self._updateSpinButtons()
         else:
-            if self._selected_clip:
-                self._selected_clip = None
-                self.zoom_scale.set_value(1.0)
-                self.app.current_project.pipeline.flushSeek()
-            self.effect = None
+            self._selected_element = None
+            self._selected_clip = None
+            self.zoom_scale.set_value(1.0)
             self.hide()
         self._updateBoxVisibility()
 
     def _updateBoxVisibility(self):
-        if self.get_expanded() and self._selected_clip:
-            self.app.gui.viewer.internal.show_box()
+        if self.get_expanded() and self._selected_element:
+            self.app.gui.viewer.internal.show_box(self._selected_element)
         else:
             self.app.gui.viewer.internal.hide_box()
 
