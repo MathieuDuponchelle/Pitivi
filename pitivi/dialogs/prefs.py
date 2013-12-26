@@ -157,7 +157,8 @@ class PreferencesDialog(object):
             ptvWidgets.NumericWidget, upper=upper, lower=lower)
 
     @classmethod
-    def addTextPreference(cls, attrname, label, description, section=None, matches=None):
+    def addTextPreference(cls, attrname, label, description, section=None,
+                          matches=None):
         """
         Add an auto-generated user preference that will show up as either a
         Gtk.SpinButton or an horizontal Gtk.Scale, depending on the upper and
@@ -176,7 +177,8 @@ class PreferencesDialog(object):
             ptvWidgets.TextWidget, matches=matches)
 
     @classmethod
-    def addChoicePreference(cls, attrname, label, description, choices, section=None):
+    def addChoicePreference(cls, attrname, label, description, choices,
+                            section=None):
         """
         Add an auto-generated user preference that will show up as either a
         Gtk.ComboBox or a group of radio buttons, depending on the number of
@@ -215,7 +217,8 @@ class PreferencesDialog(object):
             ptvWidgets.ToggleWidget)
 
     @classmethod
-    def addColorPreference(cls, attrname, label, description, section=None, value_type=int):
+    def addColorPreference(cls, attrname, label, description, section=None,
+                           value_type=int):
         """
         Add an auto-generated user preference for specifying colors. The
         colors can be returned as either int, a string colorspec, or a
@@ -277,7 +280,8 @@ class PreferencesDialog(object):
                 else:
                     label_widget = Gtk.Label(label=_(label) + ":")
                 icon = Gtk.Image()
-                icon.set_from_icon_name("edit-clear-all-symbolic", Gtk.IconSize.MENU)
+                icon.set_from_icon_name(
+                    "edit-clear-all-symbolic", Gtk.IconSize.MENU)
                 revert = Gtk.Button()
                 revert.add(icon)
                 revert.set_tooltip_text(_("Reset to default value"))
@@ -298,13 +302,16 @@ class PreferencesDialog(object):
                     # Avoid the separating the label from the checkbox
                     widget.set_label(label.get_text())
                     widgets.attach(widget, 0, 2, y, y + 1, yoptions=0)
-                    widgets.attach(revert, 2, 3, y, y + 1, xoptions=0, yoptions=0)
+                    widgets.attach(revert, 2, 3, y, y + 1,
+                                   xoptions=0, yoptions=0)
                 else:
                     label.set_alignment(1.0, 0.5)
                     label.set_tooltip_text(description)
-                    widgets.attach(label, 0, 1, y, y + 1, xoptions=Gtk.AttachOptions.FILL, yoptions=0)
+                    widgets.attach(label, 0, 1, y, y + 1,
+                                   xoptions=Gtk.AttachOptions.FILL, yoptions=0)
                     widgets.attach(widget, 1, 2, y, y + 1, yoptions=0)
-                    widgets.attach(revert, 2, 3, y, y + 1, xoptions=0, yoptions=0)
+                    widgets.attach(revert, 2, 3, y, y + 1,
+                                   xoptions=0, yoptions=0)
                     label.show()
                 widget.set_tooltip_text(description)
                 widget.show()
@@ -382,7 +389,8 @@ class PreferencesDialog(object):
         setattr(self.settings, attrname, value)
 
         # adjust controls as appropriate
-        self.resets[attrname].set_sensitive(not self.settings.isDefault(attrname))
+        self.resets[attrname].set_sensitive(
+            not self.settings.isDefault(attrname))
         self.factory_settings.set_sensitive(True)
 
     def _configureCb(self, unused_widget, event):
