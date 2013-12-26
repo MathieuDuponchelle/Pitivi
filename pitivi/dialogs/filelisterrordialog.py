@@ -92,7 +92,8 @@ class FileListErrorDialog(Signallable, Loggable):
 
         if extra:
             end = textbuffer.get_end_iter()
-            textbuffer.insert_with_tags(end, _("Extra information:") + " ", boldtag)
+            textbuffer.insert_with_tags(end, _("Extra information:") + " ",
+                                        boldtag)
 
             end = textbuffer.get_end_iter()
             textbuffer.insert(end, "%s\n" % extra)
