@@ -44,7 +44,26 @@ class ClipMediaPropsDialog():
         self.audio_streams = audio_streams
         self.video_streams = video_streams
         self.has_audio = self.has_video = self.is_image = False
-        self._createUi()
+        builder = self._createUi()
+
+        self.dialog = builder.get_object("Import Settings")
+        self.channels = builder.get_object("channels")
+        self.size_height = builder.get_object("size_height")
+        self.size_width = builder.get_object("size_width")
+        self.frame_rate = builder.get_object("frame_rate")
+        self.aspect_ratio = builder.get_object("aspect_ratio")
+        self.sample_rate = builder.get_object("sample_rate")
+        self.frame1 = builder.get_object("frame1")
+        self.frame2 = builder.get_object("frame2")
+        self.hbox2 = builder.get_object("hbox2")
+        self.hbox3 = builder.get_object("hbox3")
+        self.label2 = builder.get_object("label2")
+        self.checkbutton1 = builder.get_object("checkbutton1")
+        self.checkbutton2 = builder.get_object("checkbutton2")
+        self.checkbutton3 = builder.get_object("checkbutton3")
+        self.checkbutton4 = builder.get_object("checkbutton4")
+        self.checkbutton5 = builder.get_object("checkbutton5")
+        self.checkbutton6 = builder.get_object("checkbutton6")
 
     def run(self):
         """Set up widgets and run the dialog"""
@@ -91,24 +110,7 @@ class ClipMediaPropsDialog():
         builder = Gtk.Builder()
         builder.add_from_file(os.path.join(get_ui_dir(), "clipmediaprops.ui"))
         builder.connect_signals(self)
-        self.dialog = builder.get_object("Import Settings")
-        self.channels = builder.get_object("channels")
-        self.size_height = builder.get_object("size_height")
-        self.size_width = builder.get_object("size_width")
-        self.frame_rate = builder.get_object("frame_rate")
-        self.aspect_ratio = builder.get_object("aspect_ratio")
-        self.sample_rate = builder.get_object("sample_rate")
-        self.frame1 = builder.get_object("frame1")
-        self.frame2 = builder.get_object("frame2")
-        self.hbox2 = builder.get_object("hbox2")
-        self.hbox3 = builder.get_object("hbox3")
-        self.label2 = builder.get_object("label2")
-        self.checkbutton1 = builder.get_object("checkbutton1")
-        self.checkbutton2 = builder.get_object("checkbutton2")
-        self.checkbutton3 = builder.get_object("checkbutton3")
-        self.checkbutton4 = builder.get_object("checkbutton4")
-        self.checkbutton5 = builder.get_object("checkbutton5")
-        self.checkbutton6 = builder.get_object("checkbutton6")
+        return builder
 
     def _applyButtonCb(self, unused_button):
         """Apply widget values to the project"""
