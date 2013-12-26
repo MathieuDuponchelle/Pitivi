@@ -34,7 +34,7 @@ from pitivi.utils.ui import frame_rates, audio_rates, \
     audio_channels, pixel_aspect_ratios, get_value_from_model
 
 
-class ClipMediaPropsDialog():
+class ClipMediaPropsDialog(object):
     """
     This dialog displays media properties, and allows applying
     them to a project.
