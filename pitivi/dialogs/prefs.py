@@ -58,7 +58,17 @@ class PreferencesDialog(object):
         self.widgets = {}
         self.resets = {}
         self._current = None
-        self._createUi()
+        builder = self._createUi()
+
+        # widgets we'll need
+        self.dialog = builder.get_object("dialog1")
+        self.model = builder.get_object("liststore1")
+        self.treeview = builder.get_object("treeview1")
+        self.contents = builder.get_object("box1")
+        self.revert_button = builder.get_object("revertButton")
+        self.factory_settings = builder.get_object("resetButton")
+        self.restart_warning = builder.get_object("restartWarning")
+
         self._fillContents()
         req = self.contents.size_request()
         min_width = req.width
@@ -77,15 +87,7 @@ class PreferencesDialog(object):
         builder = Gtk.Builder()
         builder.add_from_file(os.path.join(get_ui_dir(), "preferences.ui"))
         builder.connect_signals(self)
-
-        # widgets we'll need
-        self.dialog = builder.get_object("dialog1")
-        self.model = builder.get_object("liststore1")
-        self.treeview = builder.get_object("treeview1")
-        self.contents = builder.get_object("box1")
-        self.revert_button = builder.get_object("revertButton")
-        self.factory_settings = builder.get_object("resetButton")
-        self.restart_warning = builder.get_object("restartWarning")
+        return builder
 
 ## Public API
 
