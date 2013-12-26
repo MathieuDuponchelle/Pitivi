@@ -48,7 +48,8 @@ class StartUpWizard(object):
     def __init__(self, app):
         self.app = app
         self.builder = Gtk.Builder()
-        self.builder.add_from_file(os.path.join(get_ui_dir(), "startupwizard.ui"))
+        self.builder.add_from_file(os.path.join(get_ui_dir(),
+                                                "startupwizard.ui"))
         self.builder.connect_signals(self)
 
         self.window = self.builder.get_object("window1")
@@ -60,16 +61,20 @@ class StartUpWizard(object):
         _filter.set_name(_("Projects"))
 
         for asset in GES.list_assets(GES.Formatter):
-            _filter.add_pattern('*.' + asset.get_meta(GES.META_FORMATTER_EXTENSION))
+            _filter.add_pattern('*.' +
+                                asset.get_meta(GES.META_FORMATTER_EXTENSION))
 
         self.recent_chooser.add_filter(_filter)
 
         if not missing_soft_deps:
             self.builder.get_object("missing_deps_button").hide()
 
-        self.app.projectManager.connect("new-project-failed", self._projectFailedCb)
-        self.app.projectManager.connect("new-project-loaded", self._projectLoadedCb)
-        self.app.projectManager.connect("new-project-loading", self._projectLoadingCb)
+        self.app.projectManager.connect("new-project-failed",
+                                        self._projectFailedCb)
+        self.app.projectManager.connect("new-project-loaded",
+                                        self._projectLoadedCb)
+        self.app.projectManager.connect("new-project-loading",
+                                        self._projectLoadingCb)
 
         vbox = self.builder.get_object("topvbox")
         self.infobar = Gtk.InfoBar()
@@ -77,7 +82,8 @@ class StartUpWizard(object):
         if self.app.version_information:
             self._appVersionInfoReceivedCb(None, self.app.version_information)
         else:
-            self.app.connect("version-info-received", self._appVersionInfoReceivedCb)
+            self.app.connect("version-info-received",
+                             self._appVersionInfoReceivedCb)
 
     def _newProjectCb(self, unused_button):
         """Handle a click on the New (Project) button."""
@@ -130,16 +136,20 @@ class StartUpWizard(object):
         """Handle the failure of a project open operation."""
         self.show()
 
-    def _projectLoadedCb(self, unused_project_manager, unused_project, fully_loaded):
+    def _projectLoadedCb(self, unused_project_manager, unused_project,
+                         fully_loaded):
         """Handle the success of a project load operation.
 
         All the create or load project usage scenarios must generate
         a new-project-loaded signal from self.app.projectManager!
         """
         if fully_loaded:
-            self.app.projectManager.disconnect_by_function(self._projectFailedCb)
-            self.app.projectManager.disconnect_by_function(self._projectLoadedCb)
-            self.app.projectManager.disconnect_by_function(self._projectLoadingCb)
+            self.app.projectManager.disconnect_by_function(
+                self._projectFailedCb)
+            self.app.projectManager.disconnect_by_function(
+                self._projectLoadedCb)
+            self.app.projectManager.disconnect_by_function(
+                self._projectLoadingCb)
 
     def _projectLoadingCb(self, unused_project_manager, unused_project):
         """Handle the start of a project load operation."""
