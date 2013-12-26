@@ -410,7 +410,7 @@ class PreferencesDialog(object):
 
 ## Preference Test Cases
 
-if False:
+if __name__ == "__main__":
 
     from pitivi.settings import GlobalSettings
 
