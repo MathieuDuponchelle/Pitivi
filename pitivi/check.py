@@ -53,7 +53,7 @@ HARD_DEPS = {
     "Gio": None,
     "gnonlin": "1.1.90",
     "Gst": "1.2.0",
-    "Gtk": "3.8.0",
+    "Gtk": "3.10.0",
     "numpy": None,  # using static python bindings
 
     # The following are not checked, but needed for the rest to work:

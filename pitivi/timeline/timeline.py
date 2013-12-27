@@ -963,6 +963,19 @@ class TimelineContainer(Gtk.Grid, Zoomable, Loggable):
         return longest_layer
 
     def _createActions(self):
+        """
+        Sets up the GtkActions. This allows managing the sensitivity of widgets
+        to the mouse and keyboard shortcuts.
+        """
+        # TODO: use GAction + GActionGroup (Gio.SimpleAction + Gio.SimpleActionGroup)
+        # or handle timeline keyboard shortcuts without using actions at all.
+
+        # Action list items can vary in size (1-6 items). The first one is the
+        # name, and it is the only mandatory option. All the other options are
+        # optional, and if omitted will default to None.
+        #
+        # name (required), stock ID, translatable label,
+        # keyboard shortcut, translatable tooltip, callback function
         actions = (
             ("ZoomIn", Gtk.STOCK_ZOOM_IN, None,
             "<Control>plus", ZOOM_IN, self._zoomInCb),
@@ -972,10 +985,6 @@ class TimelineContainer(Gtk.Grid, Zoomable, Loggable):
 
             ("ZoomFit", Gtk.STOCK_ZOOM_FIT, None,
             "<Control>0", ZOOM_FIT, self._zoomFitCb),
-
-            ("Screenshot", None, _("Export current frame..."),
-            None, _("Export the frame at the current playhead "
-                    "position as an image file."), self._screenshotCb),
 
             # Alternate keyboard shortcuts to the actions above
             ("ControlEqualAccel", Gtk.STOCK_ZOOM_IN, None,
@@ -1261,41 +1270,6 @@ class TimelineContainer(Gtk.Grid, Zoomable, Loggable):
         x += self.timeline.get_scroll_point().x
         return x - CONTROL_WIDTH, y - height
 
-    def _showSaveScreenshotDialog(self):
-        """
-        Show a filechooser dialog asking the user where to save the snapshot
-        and what file type to use.
-
-        Returns a list containing the full path and the mimetype if successful,
-        returns none otherwise.
-        """
-        chooser = Gtk.FileChooserDialog(title=_("Save As..."), transient_for=self.app.gui,
-            action=Gtk.FileChooserAction.SAVE)
-        chooser.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
-            Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
-        chooser.set_icon_name("pitivi")
-        chooser.set_select_multiple(False)
-        chooser.set_current_name(_("Untitled"))
-        chooser.props.do_overwrite_confirmation = True
-        formats = {_("PNG image"): ["image/png", ("png",)],
-            _("JPEG image"): ["image/jpeg", ("jpg", "jpeg")]}
-        for format in formats:
-            filt = Gtk.FileFilter()
-            filt.set_name(format)
-            filt.add_mime_type(formats.get(format)[0])
-            chooser.add_filter(filt)
-        response = chooser.run()
-        if response == Gtk.ResponseType.OK:
-            chosen_format = formats.get(chooser.get_filter().get_name())
-            chosen_ext = chosen_format[1][0]
-            chosen_mime = chosen_format[0]
-            uri = os.path.join(chooser.get_current_folder(), chooser.get_filename())
-            ret = [uri + "." + chosen_ext, chosen_mime]
-        else:
-            ret = None
-        chooser.destroy()
-        return ret
-
     # Zoomable
 
     def zoomChanged(self):
@@ -1420,15 +1394,6 @@ class TimelineContainer(Gtk.Grid, Zoomable, Loggable):
 
     def _zoomFitCb(self, unused, unused_2=None):
         self._setBestZoomRatio(allow_zoom_in=True)
-
-    def _screenshotCb(self, unused_action):
-        """
-        Export a snapshot of the current frame as an image file.
-        """
-        foo = self._showSaveScreenshotDialog()
-        if foo:
-            path, mime = foo[0], foo[1]
-            self._project.pipeline.save_thumbnail(-1, -1, mime, path)
 
     def _previousKeyframeCb(self, unused_action):
         position = self._project.pipeline.getPosition()
