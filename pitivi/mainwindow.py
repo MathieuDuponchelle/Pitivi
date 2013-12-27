@@ -437,28 +437,6 @@ class PitiviMainWindow(Gtk.Window, Loggable):
         self.connect("delete-event", self._deleteCb)
         self.connect("configure-event", self._configureCb)
 
-    def switchContextTab(self, tab=None):
-        """
-        Switch the tab being displayed on the second set of tabs,
-        depending on the context.
-
-        @param the name of the tab to switch to, or None to reset
-        """
-        if not tab:
-            page = 0
-        else:
-            tab = tab.lower()
-            if tab == "clip configuration":
-                page = 0
-            elif tab == "transitions":
-                page = 1
-            elif tab == "title editor":
-                page = 2
-            else:
-                self.debug("Invalid context tab switch requested")
-                return False
-        self.context_tabs.set_current_page(page)
-
 ## Missing Plugin Support
 
     def _installPlugins(self, details, missingPluginsCallback):
@@ -1064,6 +1042,29 @@ class PitiviMainWindow(Gtk.Window, Loggable):
         self.render_button.set_sensitive(duration > 0)
 
 ## other
+
+    def switchContextTab(self, tab=None):
+        """
+        Switch the tab being displayed on the second set of tabs,
+        depending on the context.
+
+        @param the name of the tab to switch to, or None to reset
+        """
+        if not tab:
+            page = 0
+        else:
+            tab = tab.lower()
+            if tab == "clip configuration":
+                page = 0
+            elif tab == "transitions":
+                page = 1
+            elif tab == "title editor":
+                page = 2
+            else:
+                self.debug("Invalid context tab switch requested")
+                return False
+        self.context_tabs.set_current_page(page)
+
     def _showExportDialog(self, project):
         self.log("Export requested")
         chooser = Gtk.FileChooserDialog(title=_("Export To..."),
