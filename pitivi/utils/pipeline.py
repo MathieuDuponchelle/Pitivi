@@ -497,6 +497,23 @@ class SimplePipeline(Signallable, Loggable):
             raise PipelineError("Couldn't get duration: Returned None")
 
 
+class AssetPipeline(SimplePipeline):
+    """
+    Pipeline for playing a single clip.
+    """
+
+    def __init__(self, clip):
+        bPipeline = Gst.ElementFactory.make("playbin", None)
+        bPipeline.set_property("uri", clip.props.uri)
+        SimplePipeline.__init__(self, bPipeline, bPipeline)
+
+        self.clip = clip
+
+    def getDuration(self, format=Gst.Format.TIME):
+        assert format is Gst.Format.TIME
+        return self.clip.duration
+
+
 class Pipeline(GES.Pipeline, SimplePipeline):
     """
     Helper to handle GES.Pipeline through the SimplePipeline API
