@@ -344,6 +344,9 @@ class PitiviMainWindow(Gtk.Window, Loggable):
         self.connect("delete-event", self._deleteCb)
         self.connect("configure-event", self._configureCb)
 
+    def focusTimeline(self):
+        self.timeline_ui.grab_focus()
+
     def _create_headerbar_buttons(self):
         self.undo_button = Gtk.Button.new_from_icon_name("edit-undo-symbolic", Gtk.IconSize.LARGE_TOOLBAR)
         self.undo_button.set_always_show_image(True)
