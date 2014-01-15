@@ -157,8 +157,6 @@ class PitiviMainWindow(Gtk.Window, Loggable):
 
     @cvar app: The application object
     @type app: L{Application}
-    @cvar project: The current project
-    @type project: L{Project}
     """
     def __init__(self, instance):
         """ initialize with the Pitivi object """
@@ -180,7 +178,9 @@ class PitiviMainWindow(Gtk.Window, Loggable):
         self.add_accel_group(self.uimanager.get_accel_group())
 
         self._createUi(instance)
-        self.recent_manager = Gtk.RecentManager()
+        self._setKeyboardShortcuts()
+
+        self._recent_manager = Gtk.RecentManager()
         self._missingUriOnLoading = False
 
         pm = self.app.projectManager
@@ -307,9 +307,6 @@ class PitiviMainWindow(Gtk.Window, Loggable):
         self.timeline_ui.setProjectManager(self.app.projectManager)
         self.vpaned.pack2(self.timeline_ui, resize=True, shrink=False)
 
-        # Enable our shortcuts for HeaderBar buttons and menu items:
-        self._set_keyboard_shortcuts()
-
         # Identify widgets for AT-SPI, making our test suite easier to develop
         # These will show up in sniff, accerciser, etc.
         self.get_accessible().set_name("main window")
@@ -380,7 +377,7 @@ class PitiviMainWindow(Gtk.Window, Loggable):
         self._headerbar.pack_start(self.save_button)
         self._headerbar.pack_start(self.render_button)
 
-    def _set_keyboard_shortcuts(self):
+    def _setKeyboardShortcuts(self):
         """
         You can't rely on Glade/GTKBuilder to set accelerators properly
         on menu items or buttons, it just doesn't work.
@@ -393,6 +390,7 @@ class PitiviMainWindow(Gtk.Window, Loggable):
         ctrl = Gdk.ModifierType.CONTROL_MASK
         shift = Gdk.ModifierType.SHIFT_MASK
         menus = self._menubutton_items
+
         self.__set_accelerator(menus["menu_new"], Gdk.KEY_n, ctrl)
         self.__set_accelerator(menus["menu_open"], Gdk.KEY_o, ctrl)
         self.__set_accelerator(menus["menu_save_as"], Gdk.KEY_s, ctrl | shift)
@@ -400,6 +398,12 @@ class PitiviMainWindow(Gtk.Window, Loggable):
         self.__set_accelerator(self.undo_button, Gdk.KEY_z, ctrl)
         self.__set_accelerator(self.redo_button, Gdk.KEY_z, ctrl | shift)
         self.__set_accelerator(self.save_button, Gdk.KEY_s, ctrl)
+
+        def closeCb(unused_accel_group, unused_widget, unused_key, unused_mods):
+            self.close()
+
+        accel_group = self.uimanager.get_accel_group()
+        accel_group.connect(Gdk.KEY_q, ctrl, Gtk.AccelFlags.VISIBLE, closeCb)
 
     def __set_accelerator(self, widget, key, mods=0, flags=Gtk.AccelFlags.VISIBLE):
         """
@@ -412,7 +416,6 @@ class PitiviMainWindow(Gtk.Window, Loggable):
             signal = "clicked"
         else:
             signal = "activate"
-
         widget.add_accelerator(signal, accel_group, key, mods, flags)
 
 ## Missing Plugin Support
@@ -657,7 +660,7 @@ class PitiviMainWindow(Gtk.Window, Loggable):
 
     def _projectManagerNewProjectLoadingCb(self, unused_project_manager, uri):
         if uri:
-            self.recent_manager.add_item(uri)
+            self._recent_manager.add_item(uri)
         self.log("A NEW project is loading, deactivate UI")
 
     def _projectManagerSaveProjectFailedCb(self, unused_project_manager, uri, exception=None):
@@ -683,7 +686,7 @@ class PitiviMainWindow(Gtk.Window, Loggable):
 
         self.save_button.set_sensitive(False)
         if uri:
-            self.recent_manager.add_item(uri)
+            self._recent_manager.add_item(uri)
 
         if project.uri is None:
             project.uri = uri
