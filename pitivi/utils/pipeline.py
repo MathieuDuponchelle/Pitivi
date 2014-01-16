@@ -305,7 +305,6 @@ class SimplePipeline(Signallable, Loggable):
         Get the duration of the C{Pipeline}.
         """
         self.log("format %r", format)
-
         dur = self._getDuration(format)
         if dur is None:
             self.info("Invalid duration: None")
@@ -313,9 +312,7 @@ class SimplePipeline(Signallable, Loggable):
             self.log("Got duration %s", format_ns(dur))
         if self._duration != dur:
             self.emit("duration-changed", dur)
-
         self._duration = dur
-
         return dur
 
     def activatePositionListener(self, interval=500):
@@ -502,12 +499,11 @@ class SimplePipeline(Signallable, Loggable):
         try:
             res, dur = self._pipeline.query_duration(format)
         except Exception, e:
-
             self.handleException(e)
             raise PipelineError("Couldn't get duration: %s" % e)
-
         if not res:
             raise PipelineError("Couldn't get duration: Returned None")
+        return dur
 
 
 class AssetPipeline(SimplePipeline):
@@ -521,10 +517,6 @@ class AssetPipeline(SimplePipeline):
 
         self.setClipUri(clip.props.uri)
         self.clip = clip
-
-    def getDuration(self, format=Gst.Format.TIME):
-        assert format is Gst.Format.TIME
-        return self.clip.duration
 
     def setClipUri(self, uri):
         self._pipeline.set_property("uri", uri)
