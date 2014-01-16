@@ -484,7 +484,6 @@ class ViewerContainer(Gtk.VBox, Loggable):
         else:
             self.sink = None
             self.system.uninhibitScreensaver(self.INHIBIT_REASON)
-        self.internal._currentStateCb(self.pipeline, state)
 
     def _switch_output_window(self):
         # Don't do anything if we don't have a pipeline
@@ -815,10 +814,7 @@ class TransformationBox():
 
 class ViewerWidget(GtkClutter.Embed, Loggable):
     """
-    Widget for displaying properly GStreamer video sink
-
-    @ivar settings: The settings of the application.
-    @type settings: L{GlobalSettings}
+    Widget for displaying properly GStreamer video clutter sink
     """
 
     __gsignals__ = {}
@@ -844,9 +840,6 @@ class ViewerWidget(GtkClutter.Embed, Loggable):
         self.pixbuf = None
         self.pipeline = None
         self.transformation_properties = None
-        # FIXME PyGi Styling with Gtk3
-        #for state in range(Gtk.StateType.INSENSITIVE + 1):
-            #self.modify_bg(state, self.style.black)
 
     def init_transformation_events(self):
         self.fixme("TransformationBox disabled")

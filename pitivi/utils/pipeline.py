@@ -509,6 +509,9 @@ class AssetPipeline(SimplePipeline):
 
         self.clip = clip
 
+        self.clutter_sink = Gst.ElementFactory.make("cluttersink", None)
+        bPipeline.set_property("video_sink", self.clutter_sink)
+
     def getDuration(self, format=Gst.Format.TIME):
         assert format is Gst.Format.TIME
         return self.clip.duration
