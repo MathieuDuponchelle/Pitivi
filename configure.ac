@@ -39,10 +39,10 @@ AS_AC_EXPAND(LOCALSTATEDIR, $localstatedir)
 AC_MSG_NOTICE(Using localstatedir $LOCALSTATEDIR)
 
 dnl python checks (you can change the required python version bellow)
-AM_PATH_PYTHON(2.7.0)
-PY_PREFIX=`$PYTHON -c 'import sys ; print sys.prefix'`
-PYTHON_LIBS="-lpython$PYTHON_VERSION"
-PYTHON_CFLAGS="-I$PY_PREFIX/include/python$PYTHON_VERSION"
+AM_PATH_PYTHON(3.3.0)
+PY_PREFIX=`$PYTHON -c 'import sys ; print (sys.prefix)'`
+PYTHON_LIBS="-lpython{$PYTHON_VERSION}m"
+PYTHON_CFLAGS="-I$PY_PREFIX/include/python${PYTHON_VERSION}m"
 AC_SUBST([PYTHON_LIBS])
 AC_SUBST([PYTHON_CFLAGS])
 
@@ -70,7 +70,7 @@ AC_SUBST(CONFIGURED_GI_TYPELIB_PATH)
 AC_CONFIG_FILES([bin/pitivi], [chmod +x bin/pitivi])
 
 PKG_CHECK_MODULES([cairo], [cairo])
-PKG_CHECK_MODULES([pycairo], [pycairo])
+PKG_CHECK_MODULES([py3cairo], [py3cairo])
 
 AC_ARG_ENABLE(help,
   AS_HELP_STRING([--disable-help],[disable help]),
