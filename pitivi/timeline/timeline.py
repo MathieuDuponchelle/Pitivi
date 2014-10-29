@@ -1210,7 +1210,7 @@ class TimelineContainer(Gtk.Grid, Zoomable, Loggable):
                     containers.add(toplevel)
 
             if containers:
-                group = GES.Container.group(list(containers))
+                GES.Container.group(list(containers))
 
             self.timeline.current_group = GES.Group()
 

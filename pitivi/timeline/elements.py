@@ -287,7 +287,6 @@ class TimelineElement(Clutter.Actor, Zoomable):
         self.rightHandle = None
         self.isSelected = False
         self.updating_keyframes = False
-        size = self.bElement.get_duration()
 
         self.background = self._createBackground()
         self.background.set_position(1, 1)
@@ -805,7 +804,6 @@ class Line(Clutter.Actor):
     def _dragProgressCb(self, unused_action, unused_actor, unused_delta_x, delta_y):
         self.gotDragged = True
         coords = self.dragAction.get_motion_coords()
-        delta_x = coords[0] - self.dragBeginStartX
         delta_y = coords[1] - self.dragBeginStartY
 
         self.previousKeyframe.updateValue(0, delta_y)
@@ -939,7 +937,6 @@ class Keyframe(Clutter.Actor):
 
     def endDrag(self):
         if not self.dragProgressed and not self.line:
-            timeline = self.timelineElement.timeline
             self.menu.set_position(
                 self.timelineElement.props.x + self.props.x + 10, self.timelineElement.props.y + self.props.y + 10)
             self.menu.show()
@@ -1074,7 +1071,6 @@ class URISourceElement(TimelineElement):
 
     def _dragBeginCb(self, action, actor, event_x, event_y, modifiers):
         self.gotDragged = False
-        mode = self.timeline._container.getEditionMode()
 
         # This can't change during a drag, so we can safely compute it now for
         # drag events.
@@ -1110,7 +1106,6 @@ class URISourceElement(TimelineElement):
 
         coords = self.dragAction.get_motion_coords()
         delta_x = coords[0] - self.dragBeginStartX
-        delta_y = coords[1] - self.dragBeginStartY
         y = coords[1] + self.timeline._container.point.y
         priority = self._getLayerForY(y)
         new_start = self._dragBeginStart + self.pixelToNs(delta_x)
