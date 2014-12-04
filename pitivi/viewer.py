@@ -19,15 +19,16 @@
 # Free Software Foundation, Inc., 51 Franklin St, Fifth Floor,
 # Boston, MA 02110-1301, USA.
 
-from gi.repository import Clutter
 from gi.repository import Gtk
-from gi.repository import GtkClutter
 from gi.repository import Gdk
+
+# FIXME, if that isn't done the viewer is detached at startup.
 try:
     from gi.repository import GdkX11
+    GdkX11  # Noop
 except ImportError:
-
     pass
+
 from gi.repository import Gst
 from gi.repository import GObject
 from gi.repository import GES
@@ -872,7 +873,7 @@ class ViewerWidget(Gtk.AspectFrame, Loggable):
         # for state in range(Gtk.StateType.INSENSITIVE + 1):
         # self.modify_bg(state, self.style.black)
 
-    def _drawCb(self, unused, unused1, unused2):
+    def _drawCb(self, widget, cr, unused2):
         if self._setting_ratio:
             # During caps renogotiation resulting from
             # the change of the rendering setting/aspect ratio
@@ -882,6 +883,15 @@ class ViewerWidget(Gtk.AspectFrame, Loggable):
             self._setting_ratio = False
         elif self.sink:
             self.sink.expose()
+        if not self.sink:
+            self.clearDrawingArea(widget, cr)
+
+    def clearDrawingArea(self, widget, cr):
+        width = widget.get_allocated_width()
+        height = widget.get_allocated_height()
+        cr.rectangle(0, 0, width, height)
+        cr.set_source_rgb(0.0, 0.0, 0.0)
+        cr.fill()
 
     def setDisplayAspectRatio(self, ratio):
         self._setting_ratio = True
