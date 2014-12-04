@@ -374,7 +374,7 @@ class SimplePipeline(GObject.Object, Loggable):
         self._listenToPosition(False)
         self._listening = False
 
-    def _positionListenerCb(self):
+    def updatePosition(self):
         try:
             try:
                 position = self.getPosition()
@@ -386,6 +386,9 @@ class SimplePipeline(GObject.Object, Loggable):
                     self._last_position = position
         finally:
             return True
+
+    def _positionListenerCb(self):
+        return self.updatePosition()
 
     def _listenToPosition(self, listen=True):
         # stupid and dumm method, not many checks done
@@ -514,6 +517,7 @@ class SimplePipeline(GObject.Object, Loggable):
                 self.simple_seek(self._next_seek)
                 self._next_seek = None
             self._removeWaitingForAsyncDoneTimeout()
+            self.updatePosition()
         else:
             self.log("%s [%r]", message.type, message.src)
 
