@@ -46,8 +46,6 @@ from pitivi.utils.timeline import Zoomable, Selection, SELECT, TimelineError
 from pitivi.utils.ui import alter_style_class, EFFECT_TARGET_ENTRY, EXPANDED_SIZE, SPACING, PLAYHEAD_COLOR, PLAYHEAD_WIDTH, CONTROL_WIDTH
 from pitivi.utils.widgets import ZoomBox
 
-import traceback
-
 GlobalSettings.addConfigOption('edgeSnapDeadband',
                                section="user-interface",
                                key="edge-snap-deadband",
@@ -340,6 +338,7 @@ class TimelineStage(Clutter.ScrollActor, Zoomable, Loggable):
     def _setUpDragAndDrop(self):
         self.set_reactive(True)
 
+        self.dragButton = 0
         self._container.stage.connect("button-press-event", self._dragBeginCb)
         self._container.stage.connect("motion-event", self._dragProgressCb)
         self._container.stage.connect("button-release-event", self._dragEndCb)
@@ -546,45 +545,62 @@ class TimelineStage(Clutter.ScrollActor, Zoomable, Loggable):
     # Callbacks
 
     def _dragBeginCb(self, unused_actor, event):
-        self.drawMarquee = self.getActorUnderPointer() == self
-        if not self.drawMarquee:
-            return
-
-        if self.current_group:
-            GES.Container.ungroup(self.current_group, False)
-            self.createSelectionGroup()
-
         self.dragBeginStartX = event.x - CONTROL_WIDTH + self._scroll_point.x
         self.dragBeginStartY = event.y + self._scroll_point.y
-        self.marquee.set_size(0, 0)
-        self.marquee.set_position(event.x - CONTROL_WIDTH, event.y)
-        self.marquee.show()
+        self.prevX = event.x
+        self.prevY = event.y
+        self.dragButton = event.button
+
+        # Selection
+        if event.button == Clutter.BUTTON_PRIMARY:
+            self.drawMarquee = self.getActorUnderPointer() == self
+
+            if not self.drawMarquee:
+                return
+
+            if self.current_group:
+                GES.Container.ungroup(self.current_group, False)
+                self.createSelectionGroup()
+
+            self.marquee.set_size(0, 0)
+            self.marquee.set_position(event.x - CONTROL_WIDTH, event.y)
+            self.marquee.show()
 
     def _dragProgressCb(self, unused_actor, event):
-        if not self.drawMarquee:
+        # Selection
+        if self.dragButton == Clutter.BUTTON_PRIMARY:
+            if not self.drawMarquee:
+                return False
+
+            x, y, width, height = self._translateToTimelineContext(event)
+
+            self.marquee.set_position(x, y)
+            self.marquee.set_size(width, height)
+
             return False
-
-        x, y, width, height = self._translateToTimelineContext(event)
-
-        self.marquee.set_position(x, y)
-        self.marquee.set_size(width, height)
-
-        return False
+        elif self.dragButton == Clutter.BUTTON_MIDDLE:
+            newX = self._container.hadj.get_value() - (event.x - self.prevX)
+            newY = self._container.vadj.get_value() - (event.y - self.prevY)
+            self._container.scrollToPixel(newX, newY)
+            self.prevX = event.x
+            self.prevY = event.y
 
     def _dragEndCb(self, unused_actor, event):
-        if not self.drawMarquee:
-            return
-        self.drawMarquee = False
+        if self.dragButton == Clutter.BUTTON_PRIMARY:
+            if not self.drawMarquee:
+                return
+            self.drawMarquee = False
 
-        x, y, width, height = self._translateToTimelineContext(event)
-        elements = self._getElementsInRegion(x, y, width, height)
-        self.createSelectionGroup()
-        for element in elements:
-            self.current_group.add(element)
-        selection = [child for child in self.current_group.get_children(True)
-                     if isinstance(child, GES.Source)]
-        self.selection.setSelection(selection, SELECT)
-        self.marquee.hide()
+            x, y, width, height = self._translateToTimelineContext(event)
+            elements = self._getElementsInRegion(x, y, width, height)
+            self.createSelectionGroup()
+            for element in elements:
+                self.current_group.add(element)
+            selection = [child for child in self.current_group.get_children(True)
+                         if isinstance(child, GES.Source)]
+            self.selection.setSelection(selection, SELECT)
+            self.marquee.hide()
+        self.dragButton = 0
 
     def _getElementsInRegion(self, x, y, width, height):
         elements = set()
@@ -796,12 +812,15 @@ class TimelineContainer(Gtk.Grid, Zoomable, Loggable):
         self._hscrollbar.set_value(0)
         self._setBestZoomRatio(allow_zoom_in=True)
 
-    def scrollToPixel(self, x):
-        if x > self.hadj.props.upper:
+    def scrollToPixel(self, x, y=None):
+        xOK = x <= self.hadj.props.upper
+        yOK = y is None or y <= self.vadj.props.upper
+
+        if not xOK or not yOK:
             # We can't scroll yet, because the canvas needs to be updated
-            GLib.idle_add(self._scrollToPixel, x)
+            GLib.idle_add(self._scrollToPixel, x, y)
         else:
-            self._scrollToPixel(x)
+            self._scrollToPixel(x, y)
 
     def seekInPosition(self, position):
         self.pressed = True
@@ -1134,7 +1153,7 @@ class TimelineContainer(Gtk.Grid, Zoomable, Loggable):
         self._vscrollbar.set_value(self._vscrollbar.get_value() +
                                    self.vadj.props.page_size ** (2.0 / 3.0))
 
-    def _scrollToPixel(self, x):
+    def _scrollToX(self, x):
         if x > self.hadj.props.upper:
             self.warning(
                 "Position %s is bigger than the hscrollbar's upper bound (%s) - is the position really in pixels?" %
@@ -1151,6 +1170,30 @@ class TimelineContainer(Gtk.Grid, Zoomable, Loggable):
         self._hscrollbar.set_value(x)
         if self._project and self._project.pipeline.getState() != Gst.State.PLAYING:
             self.timeline.restore_easing_state()
+
+    def _scrollToY(self, y):
+        if y > self.vadj.props.upper:
+            self.warning(
+                "Position %s is bigger than the vscrollbar's upper bound (%s) - is the position really in pixels?" %
+                (y, self.vadj.props.upper))
+        elif y < self.vadj.props.lower:
+            self.warning(
+                "Position %s is smaller than the hscrollbar's lower bound (%s)" %
+                (y, self.vadj.props.lower))
+
+        if self._project and self._project.pipeline.getState() != Gst.State.PLAYING:
+            self.timeline.save_easing_state()
+            self.timeline.set_easing_duration(0)
+
+        self._vscrollbar.set_value(y)
+        if self._project and self._project.pipeline.getState() != Gst.State.PLAYING:
+            self.timeline.restore_easing_state()
+
+    def _scrollToPixel(self, x, y=None):
+        self._scrollToX(x)
+        if y is not None:
+            self._scrollToY(y)
+
         return False
 
     def xIsVisible(self, x):
@@ -1467,6 +1510,11 @@ class TimelineContainer(Gtk.Grid, Zoomable, Loggable):
                 self.scroll_down()
             elif delta_y < 0:
                 self.scroll_up()
+        elif event.state & Gdk.ModifierType.CONTROL_MASK:
+            if delta_y > 0:
+                self.scroll_right()
+            elif delta_y < 0:
+                self.scroll_left()
         else:
             old_pos = Zoomable.pixelToNs(event.x + self.hadj.get_value() - CONTROL_WIDTH)
             rescroll = False
