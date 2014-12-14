@@ -383,7 +383,9 @@ class TimelineStage(Clutter.ScrollActor, Zoomable, Loggable):
 
     def _positionCb(self, unused_pipeline, position):
         self._movePlayhead(position)
-        self._container._scrollToPlayhead()
+        playheadIsVisible = self._container.xIsVisible(self.playhead.props.x)
+        if not playheadIsVisible:
+            self._container._scrollToPlayhead()
         self.lastPosition = position
 
     def _updatePlayHead(self):
@@ -1150,11 +1152,15 @@ class TimelineContainer(Gtk.Grid, Zoomable, Loggable):
             self.timeline.restore_easing_state()
         return False
 
+    def xIsVisible(self, x):
+        canvas_width = self.embed.get_allocation().width - CONTROL_WIDTH
+        return x > self.hadj.get_value() and x < self.hadj.get_value() + canvas_width
+
     def _scrollToPlayhead(self):
         if self.ruler.pressed or self.pressed:
             self.pressed = False
             return
-        canvas_width = self.embed.get_allocation().width - CONTROL_WIDTH
+
         try:
             new_pos = Zoomable.nsToPixel(self._project.pipeline.getPosition())
         except PipelineError as e:
@@ -1162,8 +1168,8 @@ class TimelineContainer(Gtk.Grid, Zoomable, Loggable):
             return
         except AttributeError:  # Standalone, no pipeline.
             return
-        playhead_pos_centered = new_pos - canvas_width / 2
-        self.scrollToPixel(max(0, playhead_pos_centered))
+        playhead_pos = new_pos
+        self.scrollToPixel(max(0, playhead_pos))
 
     def _deleteSelected(self, unused_action):
         if self.bTimeline:
@@ -1216,7 +1222,7 @@ class TimelineContainer(Gtk.Grid, Zoomable, Loggable):
                     containers.add(toplevel)
 
             if containers:
-                group = GES.Container.group(list(containers))
+                GES.Container.group(list(containers))
             self.timeline.createSelectionGroup()
 
             self._project.pipeline.commit_timeline()
