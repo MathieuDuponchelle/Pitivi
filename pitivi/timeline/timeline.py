@@ -46,6 +46,7 @@ from pitivi.utils.timeline import Zoomable, Selection, SELECT, TimelineError
 from pitivi.utils.ui import alter_style_class, EFFECT_TARGET_ENTRY, EXPANDED_SIZE, SPACING, PLAYHEAD_COLOR, PLAYHEAD_WIDTH, CONTROL_WIDTH
 from pitivi.utils.widgets import ZoomBox
 
+import traceback
 
 GlobalSettings.addConfigOption('edgeSnapDeadband',
                                section="user-interface",
@@ -1145,7 +1146,7 @@ class TimelineContainer(Gtk.Grid, Zoomable, Loggable):
 
         if self._project and self._project.pipeline.getState() != Gst.State.PLAYING:
             self.timeline.save_easing_state()
-            self.timeline.set_easing_duration(600)
+            self.timeline.set_easing_duration(0)
 
         self._hscrollbar.set_value(x)
         if self._project and self._project.pipeline.getState() != Gst.State.PLAYING:
@@ -1170,6 +1171,17 @@ class TimelineContainer(Gtk.Grid, Zoomable, Loggable):
             return
         playhead_pos = new_pos
         self.scrollToPixel(max(0, playhead_pos))
+
+    def centerPlayhead(self):
+        try:
+            new_pos = Zoomable.nsToPixel(self._project.pipeline.getPosition())
+        except PipelineError as e:
+            self.info("Pipeline error: %s", e)
+            return
+
+        canvas_width = self.embed.get_allocation().width - CONTROL_WIDTH
+        playhead_pos_centered = new_pos - canvas_width / 2
+        self.scrollToPixel(max(0, playhead_pos_centered))
 
     def _deleteSelected(self, unused_action):
         if self.bTimeline:
@@ -1450,22 +1462,26 @@ class TimelineContainer(Gtk.Grid, Zoomable, Loggable):
 
     def _scrollEventCb(self, unused_embed, event):
         unused_res, delta_x, delta_y = event.get_scroll_deltas()
-        if event.state & Gdk.ModifierType.CONTROL_MASK:
-            if delta_y < 0:
-                Zoomable.zoomIn()
-            elif delta_y > 0:
-                Zoomable.zoomOut()
-            self._scrollToPlayhead()
-        elif event.state & Gdk.ModifierType.SHIFT_MASK:
+        if event.state & Gdk.ModifierType.SHIFT_MASK:
             if delta_y > 0:
                 self.scroll_down()
             elif delta_y < 0:
                 self.scroll_up()
         else:
-            if delta_y > 0:
-                self.scroll_right()
-            elif delta_y < 0:
-                self.scroll_left()
+            old_pos = Zoomable.pixelToNs(event.x + self.hadj.get_value() - CONTROL_WIDTH)
+            rescroll = False
+            if delta_y < 0:
+                rescroll = True
+                Zoomable.zoomIn()
+            elif delta_y > 0:
+                rescroll = True
+                Zoomable.zoomOut()
+
+            if rescroll:
+                new_pos = Zoomable.nsToPixel(old_pos)
+                new_pos -= event.x
+                new_pos += CONTROL_WIDTH
+                self.scrollToPixel(new_pos)
         self.scrolled += 1
 
     def _selectionChangedCb(self, selection):
