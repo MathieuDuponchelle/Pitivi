@@ -45,6 +45,8 @@ from pitivi.utils.misc import quote_uri, path_from_uri
 from pitivi.utils.system import getSystem
 from pitivi.utils.timeline import Zoomable
 
+from pitivi.extensions import get_all_extension_classes
+
 
 class Pitivi(Gtk.Application, Loggable):
 
@@ -93,6 +95,8 @@ class Pitivi(Gtk.Application, Loggable):
         self.connect("startup", self._startupCb)
         self.connect("activate", self._activateCb)
         self.connect("open", self.openCb)
+
+        self.extension_classes = get_all_extension_classes(sort=True)
 
     def write_action(self, action, properties={}):
         if self._scenario_file is None:
