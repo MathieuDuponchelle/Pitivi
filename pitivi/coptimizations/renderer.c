@@ -22,14 +22,18 @@ py_fill_surface (PyObject * self, PyObject * args)
   int width, height;
   float pixelsPerSample;
   float currentPixel;
+  float max;
   int samplesInAccum;
   float x = 0.;
   float lastX = 0.;
   double accum;
   double lastAccum = 0.;
+  float scale_factor = 0.0;
 
-  if (!PyArg_ParseTuple (args, "O!ii", &PyList_Type, &samples, &width, &height))
+  if (!PyArg_ParseTuple (args, "O!iif", &PyList_Type, &samples, &width, &height, &max))
     return NULL;
+
+  scale_factor = height / max;
 
   length = PyList_Size (samples);
 
@@ -63,6 +67,9 @@ py_fill_surface (PyObject * self, PyObject * args)
     accum += sample;
     if (currentPixel > 1.0) {
       accum /= samplesInAccum;
+      accum *= scale_factor;
+      if (accum >= height)
+        accum = height;
       cairo_line_to (ctx, x, height - accum);
       lastAccum = accum;
       accum = 0;
@@ -98,7 +105,7 @@ PyMODINIT_FUNC
 PyInit_renderer (void)
 {
   if (import_cairo () < 0) {
-    g_print ("Cairo import failed.");
+    printf ("Cairo import failed.");
   }
 
   PyObject *m;
