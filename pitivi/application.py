@@ -96,7 +96,7 @@ class Pitivi(Gtk.Application, Loggable):
         self.connect("activate", self._activateCb)
         self.connect("open", self.openCb)
 
-        self.extension_classes = get_all_extension_classes(sort=True)
+        self._extension_classes = get_all_extension_classes(sort=True)
 
     def write_action(self, action, properties={}):
         if self._scenario_file is None:
@@ -157,6 +157,13 @@ class Pitivi(Gtk.Application, Loggable):
         self._createActions()
         self._checkVersion()
 
+        self._createExtensions()
+
+    def _createExtensions(self):
+        self._extensions = []
+        for klass in self._extension_classes:
+            self._extensions.append(klass(self))
+
     def _createActions(self):
         self.undo_action = Gio.SimpleAction.new("undo", None)
         self.undo_action.connect("activate", self._undoCb)
@@ -172,6 +179,10 @@ class Pitivi(Gtk.Application, Loggable):
         self.quit_action.connect("activate", self._quitCb)
         self.add_action(self.quit_action)
         self.add_accelerator("<Control>q", "app.quit", None)
+
+    def _setupExtensions(self):
+        for extension in self._extensions:
+            extension.setup()
 
     def _activateCb(self, unused_app):
         if self.gui:
@@ -192,6 +203,7 @@ class Pitivi(Gtk.Application, Loggable):
         self.createMainWindow()
         self.welcome_wizard = StartUpWizard(self)
         self.welcome_wizard.show()
+        self._setupExtensions()
 
     def createMainWindow(self):
         if self.gui:
@@ -210,6 +222,7 @@ class Pitivi(Gtk.Application, Loggable):
                 "Can open only one project file at a time. Ignoring the rest!")
         project_file = giofiles[0]
         self.project_manager.loadProject(quote_uri(project_file.get_uri()))
+        self._setupExtensions()
         return True
 
     def shutdown(self):
