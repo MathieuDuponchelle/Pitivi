@@ -30,6 +30,7 @@ from gi.repository import GLib
 from gi.repository import Gdk
 from gi.repository import Gst
 from gi.repository import Gtk
+from gi.repository import GObject
 
 from pitivi.autoaligner import AlignmentProgressDialog, AutoAligner
 from pitivi.configure import get_ui_dir
@@ -148,14 +149,16 @@ class Marquee(Gtk.Box, Loggable):
 
     def setStartPosition(self, event):
         event_widget = self._timeline.get_event_widget(event)
-        x, y = event_widget.translate_coordinates(self._timeline, event.x, event.y)
+        x, y = event_widget.translate_coordinates(
+            self._timeline, event.x, event.y)
 
         self.start_x, self.start_y = self._timeline.adjustCoords(x=x, y=y)
 
     def move(self, event):
         event_widget = self._timeline.get_event_widget(event)
 
-        x, y = self._timeline.adjustCoords(coords=event_widget.translate_coordinates(self._timeline, event.x, event.y))
+        x, y = self._timeline.adjustCoords(
+            coords=event_widget.translate_coordinates(self._timeline, event.x, event.y))
 
         start_x = min(x, self.start_x)
         start_y = min(y, self.start_y)
@@ -218,6 +221,10 @@ class Timeline(Gtk.EventBox, Zoomable, Loggable):
     """
 
     __gtype_name__ = "PitiviTimeline"
+    __gsignals__ = {
+        'populating-clip-menu': (GObject.SignalFlags.RUN_LAST, None,
+                                 (GObject.TYPE_PYOBJECT, GObject.TYPE_PYOBJECT,)),
+    }
 
     def __init__(self, container, app):
         Gtk.EventBox.__init__(self)
@@ -248,7 +255,8 @@ class Timeline(Gtk.EventBox, Zoomable, Loggable):
         hbox.pack_end(self.layout, False, True, 0)
 
         # Stuff the layers controls in a Viewport so it can be scrolled.
-        self.__layers_controls_vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.__layers_controls_vbox = Gtk.Box(
+            orientation=Gtk.Orientation.VERTICAL)
         self.__layers_controls_vbox.props.hexpand = False
         self.__layers_controls_vbox.props.valign = Gtk.Align.START
 
@@ -267,7 +275,8 @@ class Timeline(Gtk.EventBox, Zoomable, Loggable):
         self.__fake_event_widget = None
 
         # A lot of operations go through these callbacks.
-        self.add_events(Gdk.EventType.BUTTON_PRESS | Gdk.EventType.BUTTON_RELEASE)
+        self.add_events(Gdk.EventType.BUTTON_PRESS |
+                        Gdk.EventType.BUTTON_RELEASE)
         self.connect("button-press-event", self.__buttonPressEventCb)
         self.connect("button-release-event", self.__buttonReleaseEventCb)
         self.connect("motion-notify-event", self.__motionNotifyEventCb)
@@ -278,7 +287,8 @@ class Timeline(Gtk.EventBox, Zoomable, Loggable):
 
         self.__last_position = 0
         self.__playhead = VerticalBar("PlayHead")
-        self.layout.put(self.__playhead, self.nsToPixel(self.__last_position), 0)
+        self.layout.put(self.__playhead, self.nsToPixel(
+            self.__last_position), 0)
         self._scrubbing = False
         self._scrolling = False
 
@@ -611,7 +621,8 @@ class Timeline(Gtk.EventBox, Zoomable, Loggable):
                 self.__drag_start_x = event.x
                 self._on_layer = self.draggingElement.layer.bLayer
             else:
-                layer_controls = self._getParentOfType(event_widget, LayerControls)
+                layer_controls = self._getParentOfType(
+                    event_widget, LayerControls)
                 if layer_controls:
                     self.__moving_layer = layer_controls.bLayer
                 else:
@@ -642,6 +653,11 @@ class Timeline(Gtk.EventBox, Zoomable, Loggable):
             return False
         elif res and button == 1:
             self._selectUnderMarquee()
+        elif res and button == 3:
+            event_widget = self.get_event_widget(event)
+            clip = self._getParentOfType(event_widget, Clip)
+            if clip:
+                self.__createClipPopup(clip, event)
 
         self._scrubbing = False
 
@@ -669,11 +685,13 @@ class Timeline(Gtk.EventBox, Zoomable, Loggable):
                 return False
 
             if self.got_dragged or self.__drag_start_x != event.x:
-                self.__dragUpdate(self.get_event_widget(event), event.x, event.y)
+                self.__dragUpdate(self.get_event_widget(
+                    event), event.x, event.y)
                 self.got_dragged = True
         elif self.__moving_layer:
             event_widget = self.get_event_widget(event)
-            unused_x, y = event_widget.translate_coordinates(self, event.x, event.y)
+            unused_x, y = event_widget.translate_coordinates(
+                self, event.x, event.y)
             layer, unused_on_sep = self.__getLayerAt(
                 y, prefer_bLayer=self.__moving_layer, past_middle_when_adjacent=True)
             if layer != self.__moving_layer:
@@ -690,7 +708,8 @@ class Timeline(Gtk.EventBox, Zoomable, Loggable):
 
     def _seek(self, event):
         event_widget = self.get_event_widget(event)
-        x, unused_y = event_widget.translate_coordinates(self, event.x, event.y)
+        x, unused_y = event_widget.translate_coordinates(
+            self, event.x, event.y)
         x -= CONTROL_WIDTH
         x += self.hadj.get_value()
         position = max(0, self.pixelToNs(x))
@@ -721,6 +740,14 @@ class Timeline(Gtk.EventBox, Zoomable, Loggable):
 
         self.queue_draw()
 
+    def __createClipPopup(self, clip, event):
+        print ('got a clip here', clip)
+        self.popup_menu = Gtk.Menu()
+        self.emit('populating-clip-menu', clip, self.popup_menu)
+        self.popup_menu.show_all()
+        self.popup_menu.popup(None, None, None, None,
+                              event.button, event.time)
+
     def __createClips(self, x, y):
         if self._createdClips:
             return False
@@ -747,7 +774,8 @@ class Timeline(Gtk.EventBox, Zoomable, Loggable):
                 placement = self.pixelToNs(x)
             placement = max(0, placement)
 
-            self.debug("Creating %s at %s", asset.props.id, Gst.TIME_ARGS(placement))
+            self.debug("Creating %s at %s", asset.props.id,
+                       Gst.TIME_ARGS(placement))
 
             self.app.action_log.begin("add clip")
             bClip = bLayer.add_asset(asset,
@@ -998,10 +1026,12 @@ class Timeline(Gtk.EventBox, Zoomable, Loggable):
 
             if layer_y + layer_height <= y < next_bLayer.ui.get_allocation().y:
                 # The cursor is between this layer and the one below.
-                separators.extend(self.__layerGetSeps(next_bLayer, "before_sep"))
+                separators.extend(self.__layerGetSeps(
+                    next_bLayer, "before_sep"))
                 if prefer_after:
                     bLayer = next_bLayer
-                self.debug("Returning layer %s, separators: %s", bLayer, separators)
+                self.debug("Returning layer %s, separators: %s",
+                           bLayer, separators)
                 return bLayer, separators
 
     def __setHoverSeparators(self, separators):
@@ -1405,7 +1435,8 @@ class TimelineContainer(Gtk.Grid, Zoomable, Loggable):
         self.zoom_out_action.connect("activate", self._zoomOutCb)
         group.add_action(self.zoom_out_action)
         self.app.add_accelerator("<Control>minus", "timeline.zoom_out", None)
-        self.app.add_accelerator("<Control>KP_Subtract", "timeline.zoom_out", None)
+        self.app.add_accelerator(
+            "<Control>KP_Subtract", "timeline.zoom_out", None)
 
         self.zoom_fit_action = Gio.SimpleAction.new("zoom_fit", None)
         self.zoom_fit_action.connect("activate", self._zoomFitCb)
@@ -1413,25 +1444,31 @@ class TimelineContainer(Gtk.Grid, Zoomable, Loggable):
         self.app.add_accelerator("<Control>0", "timeline.zoom_fit", None)
 
         # Clips actions.
-        self.delete_action = Gio.SimpleAction.new("delete_selected_clips", None)
+        self.delete_action = Gio.SimpleAction.new(
+            "delete_selected_clips", None)
         self.delete_action.connect("activate", self._deleteSelected)
         group.add_action(self.delete_action)
-        self.app.add_accelerator("Delete", "timeline.delete_selected_clips", None)
+        self.app.add_accelerator(
+            "Delete", "timeline.delete_selected_clips", None)
 
         self.group_action = Gio.SimpleAction.new("group_selected_clips", None)
         self.group_action.connect("activate", self._groupSelected)
         group.add_action(self.group_action)
-        self.app.add_accelerator("<Control>g", "timeline.group_selected_clips", None)
+        self.app.add_accelerator(
+            "<Control>g", "timeline.group_selected_clips", None)
 
-        self.ungroup_action = Gio.SimpleAction.new("ungroup_selected_clips", None)
+        self.ungroup_action = Gio.SimpleAction.new(
+            "ungroup_selected_clips", None)
         self.ungroup_action.connect("activate", self._ungroupSelected)
         group.add_action(self.ungroup_action)
-        self.app.add_accelerator("<Shift><Control>g", "timeline.ungroup_selected_clips", None)
+        self.app.add_accelerator(
+            "<Shift><Control>g", "timeline.ungroup_selected_clips", None)
 
         self.copy_action = Gio.SimpleAction.new("copy_selected_clips", None)
         self.copy_action.connect("activate", self.__copyClipsCb)
         group.add_action(self.copy_action)
-        self.app.add_accelerator("<Control>c", "timeline.copy_selected_clips", None)
+        self.app.add_accelerator(
+            "<Control>c", "timeline.copy_selected_clips", None)
 
         self.paste_action = Gio.SimpleAction.new("paste_clips", None)
         self.paste_action.connect("activate", self.__pasteClipsCb)
@@ -1441,7 +1478,8 @@ class TimelineContainer(Gtk.Grid, Zoomable, Loggable):
         self.align_action = Gio.SimpleAction.new("align_selected_clips", None)
         self.align_action.connect("activate", self._alignSelectedCb)
         group.add_action(self.align_action)
-        self.app.add_accelerator("<Shift><Control>a", "timeline.align_selected_clips", None)
+        self.app.add_accelerator(
+            "<Shift><Control>a", "timeline.align_selected_clips", None)
 
         self.gapless_action = Gio.SimpleAction.new("toggle_gapless_mode", None)
         self.gapless_action.connect("activate", self._gaplessmodeToggledCb)
@@ -1459,7 +1497,8 @@ class TimelineContainer(Gtk.Grid, Zoomable, Loggable):
         self.app.add_accelerator("S", "timeline.split_clips", None)
         self.split_action.set_enabled(True)
 
-        self.keyframe_action = Gio.SimpleAction.new("keyframe_selected_clips", None)
+        self.keyframe_action = Gio.SimpleAction.new(
+            "keyframe_selected_clips", None)
         self.keyframe_action.connect("activate", self._keyframeCb)
         group.add_action(self.keyframe_action)
         self.app.add_accelerator("K", "timeline.keyframe_selected_clips", None)
@@ -1519,7 +1558,8 @@ class TimelineContainer(Gtk.Grid, Zoomable, Loggable):
                             self.vadj.props.page_size ** (2.0 / 3.0))
 
     def _scrollToPixel(self, x):
-        self.log("Scroll to: %s %s %s", x, self.hadj.props.lower, self.hadj.props.upper)
+        self.log("Scroll to: %s %s %s", x,
+                 self.hadj.props.lower, self.hadj.props.upper)
         if x > self.hadj.props.upper:
             self.warning(
                 "Position %s is bigger than the hscrollbar's upper bound (%s) - is the position really in pixels?",
@@ -1730,14 +1770,16 @@ class TimelineContainer(Gtk.Grid, Zoomable, Loggable):
                 self._project.pipeline.seekRelative(0 - Gst.SECOND)
             else:
                 self._project.pipeline.stepFrame(self._framerate, -1)
-            self.timeline.scrollToPlayhead(align=Gtk.Align.CENTER, when_not_in_view=True)
+            self.timeline.scrollToPlayhead(
+                align=Gtk.Align.CENTER, when_not_in_view=True)
             return True
         elif event.keyval == Gdk.KEY_Right:
             if self._shiftMask:
                 self._project.pipeline.seekRelative(Gst.SECOND)
             else:
                 self._project.pipeline.stepFrame(self._framerate, 1)
-            self.timeline.scrollToPlayhead(align=Gtk.Align.CENTER, when_not_in_view=True)
+            self.timeline.scrollToPlayhead(
+                align=Gtk.Align.CENTER, when_not_in_view=True)
             return True
         return False
 
