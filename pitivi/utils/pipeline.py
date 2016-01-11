@@ -537,7 +537,7 @@ class Pipeline(GES.Pipeline, SimplePipeline):
 
     __gsignals__ = PIPELINE_SIGNALS
 
-    def __init__(self, app):
+    def __init__(self, app=None):
         GES.Pipeline.__init__(self)
         SimplePipeline.__init__(self, self)
 
@@ -613,13 +613,14 @@ class Pipeline(GES.Pipeline, SimplePipeline):
         if self._rendering():
             raise PipelineError("Trying to seek while rendering")
 
-        st = Gst.Structure.new_empty("seek")
-        if self.getState() == Gst.State.PLAYING:
-            st.set_value("playback_time", float(
-                self.getPosition()) / Gst.SECOND)
-        st.set_value("start", float(position / Gst.SECOND))
-        st.set_value("flags", "accurate+flush")
-        self.app.write_action(st)
+        if self.app is not None:
+            st = Gst.Structure.new_empty("seek")
+            if self.getState() == Gst.State.PLAYING:
+                st.set_value("playback_time", float(
+                    self.getPosition()) / Gst.SECOND)
+            st.set_value("start", float(position / Gst.SECOND))
+            st.set_value("flags", "accurate+flush")
+            self.app.write_action(st)
 
         try:
             SimplePipeline.simple_seek(self, position)
