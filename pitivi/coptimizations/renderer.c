@@ -25,12 +25,13 @@ py_fill_surface (PyObject * self, PyObject * args)
   float max;
   int samplesInAccum;
   float x = 0.;
-  float lastX = 0.;
   double accum;
   double lastAccum = 0.;
   float scale_factor = 0.0;
+  int playhead_index;
 
-  if (!PyArg_ParseTuple (args, "O!iif", &PyList_Type, &samples, &width, &height, &max))
+  if (!PyArg_ParseTuple (args, "O!iifi", &PyList_Type, &samples, &width, &height, &max,
+        &playhead_index))
     return NULL;
 
   scale_factor = height / max;
@@ -62,6 +63,7 @@ py_fill_surface (PyObject * self, PyObject * args)
       return NULL;
     }
 
+
     currentPixel += pixelsPerSample;
     samplesInAccum += 1;
     accum += sample;
@@ -75,15 +77,24 @@ py_fill_surface (PyObject * self, PyObject * args)
       accum = 0;
       currentPixel -= 1.0;
       samplesInAccum = 0;
-      lastX = x;
     }
+
+    if (i == playhead_index && playhead_index >= 0) {
+      cairo_line_to (ctx, x, height);
+      cairo_close_path (ctx);
+      cairo_fill(ctx);
+      cairo_move_to (ctx, x, height);
+      cairo_set_source_rgb (ctx, 0.1, 0.3, 0.0);
+      cairo_set_line_width (ctx, 0.5);
+    }
+
     x += pixelsPerSample;
   }
 
   Py_DECREF (samples);
   cairo_line_to (ctx, width, height);
   cairo_close_path (ctx);
-  cairo_fill_preserve (ctx);
+  cairo_fill (ctx);
 
   return PycairoSurface_FromSurface (surface, NULL);
 }

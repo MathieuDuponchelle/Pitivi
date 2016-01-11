@@ -904,7 +904,8 @@ class AudioPreviewer(Gtk.Layout, PreviewGenerator, Zoomable, Loggable):
             self.surface = renderer.fill_surface(self.samples[start:end],
                                                  min(self.props.width_request - clipped_rect.x, clipped_rect.width + MARGIN),
                                                  int(self.get_parent().get_allocation().height),
-                                                 self.__maxPeak)
+                                                 self.__maxPeak,
+                                                 -1)
 
             self._force_redraw = False
 
