@@ -107,7 +107,10 @@ class MediaLibraryWidget(Gtk.Box, Loggable):
 
     __gsignals__ = {
         'play': (GObject.SignalFlags.RUN_LAST, None,
-                 (GObject.TYPE_PYOBJECT,))}
+                 (GObject.TYPE_PYOBJECT,)),
+        'populating-asset-menu': (GObject.SignalFlags.RUN_LAST, None,
+                                  (GObject.TYPE_PYOBJECT, GObject.TYPE_PYOBJECT,)),
+    }
 
     def __init__(self, app):
         Gtk.Box.__init__(self)
@@ -134,10 +137,13 @@ class MediaLibraryWidget(Gtk.Box, Loggable):
         self._welcome_infobar = builder.get_object("welcome_infobar")
         self._project_settings_set_infobar = Gtk.InfoBar()
         self._project_settings_set_infobar.hide()
-        self._project_settings_set_infobar.set_message_type(Gtk.MessageType.OTHER)
+        self._project_settings_set_infobar.set_message_type(
+            Gtk.MessageType.OTHER)
         self._project_settings_set_infobar.set_show_close_button(True)
-        self._project_settings_set_infobar.add_button(_("Project Settings"), Gtk.ResponseType.OK)
-        self._project_settings_set_infobar.connect("response", self.__projectSettingsSetInfobarCb)
+        self._project_settings_set_infobar.add_button(
+            _("Project Settings"), Gtk.ResponseType.OK)
+        self._project_settings_set_infobar.connect(
+            "response", self.__projectSettingsSetInfobarCb)
         self._import_warning_infobar = builder.get_object("warning_infobar")
         self._import_warning_infobar.hide()
         self._warning_label = builder.get_object("warning_label")
@@ -288,12 +294,15 @@ class MediaLibraryWidget(Gtk.Box, Loggable):
         self.remove_assets_action = Gio.SimpleAction.new("remove_assets", None)
         self.remove_assets_action.connect("activate", self._removeAssetsCb)
         actions_group.add_action(self.remove_assets_action)
-        self.app.add_accelerator("<Control>Delete", "medialibrary.remove_assets", None)
+        self.app.add_accelerator(
+            "<Control>Delete", "medialibrary.remove_assets", None)
 
-        self.insert_at_end_action = Gio.SimpleAction.new("insert_assets_at_end", None)
+        self.insert_at_end_action = Gio.SimpleAction.new(
+            "insert_assets_at_end", None)
         self.insert_at_end_action.connect("activate", self._insertEndCb)
         actions_group.add_action(self.insert_at_end_action)
-        self.app.add_accelerator("Insert", "medialibrary.insert_assets_at_end", None)
+        self.app.add_accelerator(
+            "Insert", "medialibrary.insert_assets_at_end", None)
 
         self._updateActions()
 
@@ -446,7 +455,8 @@ class MediaLibraryWidget(Gtk.Box, Loggable):
         project.connect("error-loading-asset", self._errorCreatingAssetCb)
         project.connect("done-importing", self._sourcesStoppedImportingCb)
         project.connect("start-importing", self._sourcesStartedImportingCb)
-        project.connect("settings-set-from-imported-asset", self.__projectSettingsSetFromImportedAssetCb)
+        project.connect("settings-set-from-imported-asset",
+                        self.__projectSettingsSetFromImportedAssetCb)
 
         # The start-importing signal would have already been emited at that
         # time, make sure to catch if it is the case
@@ -542,8 +552,8 @@ class MediaLibraryWidget(Gtk.Box, Loggable):
             current_clip_iter
 
         progressbar_text = (_("Importing clip %(current_clip)d of %(total)d") %
-            {"current_clip": current_clip_iter + 1,
-            "total": total_clips})
+                            {"current_clip": current_clip_iter + 1,
+                             "total": total_clips})
         self._progressbar.set_text(progressbar_text)
         if current_clip_iter == 0:
             self._progressbar.set_fraction(0.0)
@@ -713,7 +723,8 @@ class MediaLibraryWidget(Gtk.Box, Loggable):
         self._progressbar.show()
         if project.loaded:
             # Some new files are being imported.
-            self._last_imported_uris += [asset.props.id for asset in project.get_loading_assets()]
+            self._last_imported_uris += [
+                asset.props.id for asset in project.get_loading_assets()]
 
     def _sourcesStoppedImportingCb(self, unused_project):
         self.debug("Importing took %.3f seconds",
@@ -751,7 +762,8 @@ class MediaLibraryWidget(Gtk.Box, Loggable):
             return
         asset_path = path_from_uri(asset.get_id())
         file_name = os.path.basename(asset_path)
-        message = _("The project settings have been set to match file '%s'") % file_name
+        message = _(
+            "The project settings have been set to match file '%s'") % file_name
         label = Gtk.Label(message)
         label.set_line_wrap(True)
         content_area = self._project_settings_set_infobar.get_content_area()
@@ -1036,6 +1048,15 @@ class MediaLibraryWidget(Gtk.Box, Loggable):
 
         self.iconview_cursor_pos = self.iconview.get_path_at_pos(
             event.x, event.y)
+
+        model_row = self.storemodel[self.iconview_cursor_pos]
+
+        if model_row and event.button == 3:
+            self.popup_menu = Gtk.Menu()
+            self.emit('populating-asset-menu', model_row, self.popup_menu)
+            self.popup_menu.show_all()
+            self.popup_menu.popup(None, None, None, None,
+                                  event.button, event.time)
 
         return True
 
