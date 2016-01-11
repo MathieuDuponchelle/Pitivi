@@ -65,6 +65,7 @@ PREVIEW_GENERATOR_SIGNALS = {
     "error": (GObject.SIGNAL_RUN_LAST, None, ()),
 }
 
+WAVEFORM_SAMPLING_INTERVAL = Gst.SECOND / 10
 
 """
 Convention throughout this file:
@@ -711,7 +712,8 @@ class AudioPreviewer(Gtk.Layout, PreviewGenerator, Zoomable, Loggable):
         self.bElement = bElement
         self.timeline = bElement.get_parent().get_timeline().ui
 
-        self.nSamples = self.bElement.get_parent().get_asset().get_duration() / 10000000
+        self.nSamples = (self.bElement.get_parent().get_asset().get_duration() /
+                WAVEFORM_SAMPLING_INTERVAL)
         self._start = 0
         self._end = 0
         self._surface_x = 0
@@ -753,8 +755,13 @@ class AudioPreviewer(Gtk.Layout, PreviewGenerator, Zoomable, Loggable):
         self.debug(
             'Now generating waveforms for: %s', filename_from_uri(self._uri))
         self.peaks = None
-        self.pipeline = Gst.parse_launch("uridecodebin name=decode uri=" + self._uri +
-                                         " ! audioconvert ! level name=wavelevel interval=10000000 post-messages=true ! fakesink qos=false name=faked")
+
+        self.pipeline = Gst.parse_launch("""
+        uridecodebin name=decode uri=%s !
+        audioconvert ! level name=wavelevel interval=%d post-messages=true !
+        fakesink qos=false name=faked""" % (self._uri,
+            WAVEFORM_SAMPLING_INTERVAL))
+
         faked = self.pipeline.get_by_name("faked")
         faked.props.sync = True
         self._wavelevel = self.pipeline.get_by_name("wavelevel")
@@ -764,7 +771,7 @@ class AudioPreviewer(Gtk.Layout, PreviewGenerator, Zoomable, Loggable):
         bus.add_signal_watch()
 
         self.nSamples = self.bElement.get_parent(
-        ).get_asset().get_duration() / 10000000
+        ).get_asset().get_duration() / WAVEFORM_SAMPLING_INTERVAL
         bus.connect("message", self._busMessageCb)
         self.becomeControlled()
 
@@ -810,7 +817,7 @@ class AudioPreviewer(Gtk.Layout, PreviewGenerator, Zoomable, Loggable):
                     for channel in p:
                         self.peaks.append([0] * int(self.nSamples))
 
-                pos = int(st / 10000000)
+                pos = int(st / WAVEFORM_SAMPLING_INTERVAL)
                 if pos >= len(self.peaks[0]):
                     return
 
@@ -884,12 +891,14 @@ class AudioPreviewer(Gtk.Layout, PreviewGenerator, Zoomable, Loggable):
         clipped_rect = Gdk.cairo_get_clip_rectangle(context)[1]
 
         num_inpoint_samples = self._get_num_inpoint_samples()
-        start = int(self.pixelToNs(clipped_rect.x) / 10000000) + num_inpoint_samples
-        end = int((self.pixelToNs(clipped_rect.x) + self.pixelToNs(clipped_rect.width)) / 10000000) + num_inpoint_samples
+        start = int(self.pixelToNs(clipped_rect.x) / WAVEFORM_SAMPLING_INTERVAL) + num_inpoint_samples
+        end = int((self.pixelToNs(clipped_rect.x) +
+            self.pixelToNs(clipped_rect.width)) / WAVEFORM_SAMPLING_INTERVAL) + num_inpoint_samples
 
         if self._force_redraw or self._surface_x > clipped_rect.x or self._end < end:
             self._start = start
-            end = int(min(self.nSamples, end + (self.pixelToNs(MARGIN) / 10000000)))
+            end = int(min(self.nSamples, end + (self.pixelToNs(MARGIN) /
+                WAVEFORM_SAMPLING_INTERVAL)))
             self._end = end
             self._surface_x = clipped_rect.x
             self.surface = renderer.fill_surface(self.samples[start:end],
