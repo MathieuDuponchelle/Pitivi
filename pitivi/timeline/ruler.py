@@ -120,8 +120,8 @@ class ScaleRuler(Gtk.DrawingArea, Zoomable, Loggable):
         self.frame_rate = Gst.Fraction(1 / 1)
         self.ns_per_frame = float(1 / self.frame_rate) * Gst.SECOND
 
-        self.playhead_pixbuf = GdkPixbuf.Pixbuf.new_from_file(
-            os.path.join(configure.get_pixmap_dir(), "pitivi-playhead.svg"))
+        self.marker_pixbuf = GdkPixbuf.Pixbuf.new_from_file(
+            os.path.join(configure.get_pixmap_dir(), "pitivi-marker.svg"))
 
         self.scales = SCALES
 
@@ -251,6 +251,7 @@ class ScaleRuler(Gtk.DrawingArea, Zoomable, Loggable):
         offset = self.pixbuf_offset % spacing
         self.drawFrameBoundaries(context)
         self.drawTicks(context, offset, spacing, interval_seconds, ticks)
+        self.drawMarkers(context)
         self.drawTimes(context, offset, spacing, interval_seconds)
 
     def _getSpacing(self, context):
@@ -378,20 +379,39 @@ class ScaleRuler(Gtk.DrawingArea, Zoomable, Loggable):
             frame_num += 1
 
     def drawPosition(self, context):
+        self.drawMarker(context, self.position, (1.0, 0.0, 0.0, 0.4))
+
+    def drawMarker(self, context, marker, rgba):
         height = self.pixbuf.get_height()
         # Add 0.5 so that the line center is at the middle of the pixel,
         # without this the line appears blurry.
-        xpos = self.nsToPixel(self.position) - self.pixbuf_offset + 0.5
+        xpos = self.nsToPixel(marker) - self.pixbuf_offset + 0.5
         context.set_line_width(PLAYHEAD_WIDTH)
-        set_cairo_color(context, (255, 0, 0))
+        context.set_source_rgb(rgba[0], rgba[1], rgba[2])
         context.move_to(xpos, height / 2)
         context.line_to(xpos, height)
         context.stroke()
 
-        playhead_width = self.playhead_pixbuf.props.width
-        playhead_height = self.playhead_pixbuf.props.height
-        xpos -= playhead_width / 2
-        ypos = (height - playhead_height) / 2
-        Gdk.cairo_set_source_pixbuf(context, self.playhead_pixbuf, xpos, ypos)
-        context.rectangle(xpos, ypos, playhead_width, playhead_height)
-        context.fill()
+        marker_width = self.marker_pixbuf.props.width
+        marker_height = self.marker_pixbuf.props.height
+        xpos -= marker_width / 2
+        ypos = (height - marker_height) / 2
+        Gdk.cairo_set_source_pixbuf(context, self.marker_pixbuf, xpos, ypos)
+        context.paint()
+        context.push_group()
+        Gdk.cairo_set_source_pixbuf(context, self.marker_pixbuf, xpos, ypos)
+        context.paint()
+        src = context.pop_group()
+        context.set_source_rgba(*rgba)
+        context.mask(src)
+
+    def drawMarkers(self, context):
+        bTimeline = self.timeline.bTimeline
+        if bTimeline is None:
+            return
+
+        start_ns = self.pixelToNs(self.pixbuf_offset)
+        end_ns = start_ns + self.pixelToNs(context.get_target().get_width())
+        markers = bTimeline.get_snapping_points(start_ns, end_ns)
+        for marker in markers:
+            self.drawMarker(context, marker, (0.0, 0.0, 1.0, 0.4))
